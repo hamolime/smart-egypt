@@ -1,19 +1,40 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import Groq from "groq-sdk";
+import { z } from "zod";
 import type { ChatCompletionMessageParam } from "groq-sdk/resources/chat/completions";
 
 const router = Router();
 const groq = new Groq({ apiKey: process.env.GROQ_KEY ?? process.env.GROQ_API_KEY });
 
-router.post("/chat", async (req, res) => {
-  const { messages } = req.body as {
-    messages: { role: "user" | "assistant"; content: string }[];
-  };
+const chatLimiter = rateLimit({
+  windowMs: 60_000,
+  limit: 20,
+  standardHeaders: "draft-7",
+  legacyHeaders: false,
+  message: { error: "Too many requests, please try again later" },
+});
 
-  if (!messages || !Array.isArray(messages)) {
-    res.status(400).json({ error: "messages array is required" });
+const ChatRequestSchema = z.object({
+  messages: z
+    .array(
+      z.object({
+        role: z.enum(["user", "assistant"]),
+        content: z.string().min(1).max(4000),
+      }),
+    )
+    .min(1)
+    .max(50),
+});
+
+router.post("/chat", chatLimiter, async (req, res) => {
+  const parsed = ChatRequestSchema.safeParse(req.body);
+  if (!parsed.success) {
+    res.status(400).json({ error: "Invalid request", details: parsed.error.flatten().fieldErrors });
     return;
   }
+
+  const { messages } = parsed.data;
 
   const history: ChatCompletionMessageParam[] = messages.map((m) => ({
     role: m.role,
