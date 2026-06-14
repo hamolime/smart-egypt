@@ -1,8 +1,7 @@
 import { Router } from "express";
-import Groq from "groq-sdk";
+import { groq } from "../lib/groq";
 
 const router = Router();
-const groq = new Groq({ apiKey: process.env.GROQ_KEY ?? process.env.GROQ_API_KEY });
 
 router.post("/trip-plan", async (req, res) => {
   const { destination, days, budget, interests, language } = req.body as {

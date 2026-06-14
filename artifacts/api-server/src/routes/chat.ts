@@ -1,9 +1,8 @@
 import { Router } from "express";
-import Groq from "groq-sdk";
 import type { ChatCompletionMessageParam } from "groq-sdk/resources/chat/completions";
+import { groq } from "../lib/groq";
 
 const router = Router();
-const groq = new Groq({ apiKey: process.env.GROQ_KEY ?? process.env.GROQ_API_KEY });
 
 router.post("/chat", async (req, res) => {
   const { messages } = req.body as {
