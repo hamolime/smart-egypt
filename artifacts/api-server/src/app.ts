@@ -1,4 +1,6 @@
 import express, { type Express } from "express";
+import path from "path";
+import { fileURLToPath } from "url";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
@@ -30,5 +32,15 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
+
+// Serve the frontend static files in production
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const publicDir = process.env.PUBLIC_DIR
+  ? path.resolve(process.env.PUBLIC_DIR)
+  : path.resolve(__dirname, "public");
+app.use(express.static(publicDir));
+app.get("*", (_req, res) => {
+  res.sendFile(path.join(publicDir, "index.html"));
+});
 
 export default app;

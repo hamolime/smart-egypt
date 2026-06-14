@@ -47,8 +47,9 @@ Format:
 ]`;
 
   try {
+    const model = process.env.GROQ_MODEL || "llama-3.1-8b-instant";
     const completion = await groq.chat.completions.create({
-      model: process.env.GROQ_MODEL || 'llama-3.1-8b-instant', 
+      model,
       messages: [{ role: "user", content: prompt }],
       max_tokens: 2048,
       temperature: 0.7,
@@ -59,6 +60,7 @@ Format:
     // Extract JSON from the response
     const jsonMatch = raw.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
+      req.log.error({ raw: raw.slice(0, 200) }, "No JSON array found in AI response");
       res.status(500).json({ error: "Failed to parse itinerary" });
       return;
     }
