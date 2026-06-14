@@ -55,14 +55,18 @@ export default function ChatbotPage() {
         body: JSON.stringify({ messages: history }),
       });
 
-      if (!res.ok) throw new Error("API error");
+      if (!res.ok) {
+        const body = await res.json().catch(() => null) as { error?: string } | null;
+        throw new Error(body?.error ?? `Request failed (${res.status})`);
+      }
       const data = (await res.json()) as { reply: string };
 
       setMessages((prev) => [
         ...prev,
         { id: Date.now() + 1, isBot: true, text: data.reply },
       ]);
-    } catch {
+    } catch (err) {
+      console.error("[ChatbotPage] Failed to send message:", err);
       setMessages((prev) => [
         ...prev,
         {

@@ -1,4 +1,4 @@
-import express, { type Express } from "express";
+import express, { type Express, type Request, type Response, type NextFunction } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
@@ -30,5 +30,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);
+
+// 404 handler for unknown routes
+app.use((_req: Request, res: Response) => {
+  res.status(404).json({ error: "Not found" });
+});
+
+// Global error handler — catches unhandled errors from async route handlers
+app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
+  req.log.error(err, "Unhandled error");
+  const status = typeof err === "object" && err !== null && "status" in err
+    ? (err as { status: number }).status
+    : 500;
+  res.status(status).json({ error: "Internal server error" });
+});
 
 export default app;

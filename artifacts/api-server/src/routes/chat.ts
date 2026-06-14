@@ -3,7 +3,12 @@ import Groq from "groq-sdk";
 import type { ChatCompletionMessageParam } from "groq-sdk/resources/chat/completions";
 
 const router = Router();
-const groq = new Groq({ apiKey: process.env.GROQ_KEY ?? process.env.GROQ_API_KEY });
+
+const groqApiKey = process.env.GROQ_KEY ?? process.env.GROQ_API_KEY;
+if (!groqApiKey) {
+  console.warn("[chat] GROQ_KEY / GROQ_API_KEY not set — chat endpoint will return 503");
+}
+const groq = new Groq({ apiKey: groqApiKey });
 
 router.post("/chat", async (req, res) => {
   const { messages } = req.body as {
@@ -12,6 +17,11 @@ router.post("/chat", async (req, res) => {
 
   if (!messages || !Array.isArray(messages)) {
     res.status(400).json({ error: "messages array is required" });
+    return;
+  }
+
+  if (!groqApiKey) {
+    res.status(503).json({ error: "AI service not configured" });
     return;
   }
 
@@ -41,7 +51,7 @@ router.post("/chat", async (req, res) => {
     res.json({ reply });
   } catch (err) {
     req.log.error(err, "Groq API error");
-    res.status(500).json({ error: "AI service unavailable" });
+    res.status(502).json({ error: "AI service unavailable" });
   }
 });
 

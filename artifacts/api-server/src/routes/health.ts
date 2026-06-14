@@ -3,9 +3,14 @@ import { HealthCheckResponse } from "@workspace/api-zod";
 
 const router: IRouter = Router();
 
-router.get("/healthz", (_req, res) => {
-  const data = HealthCheckResponse.parse({ status: "ok" });
-  res.json(data);
+router.get("/healthz", (req, res) => {
+  const result = HealthCheckResponse.safeParse({ status: "ok" });
+  if (!result.success) {
+    req.log.error({ issues: result.error.issues }, "Health check schema validation failed");
+    res.status(500).json({ error: "Internal validation error" });
+    return;
+  }
+  res.json(result.data);
 });
 
 export default router;

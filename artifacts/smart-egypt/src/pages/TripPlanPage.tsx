@@ -66,10 +66,14 @@ export default function TripPlanPage() {
           language,
         }),
       });
-      if (!res.ok) throw new Error("API error");
+      if (!res.ok) {
+        const body = await res.json().catch(() => null) as { error?: string } | null;
+        throw new Error(body?.error ?? `Request failed (${res.status})`);
+      }
       const data = await res.json() as { itinerary: DayPlan[] };
       setItinerary(data.itinerary);
-    } catch {
+    } catch (err) {
+      console.error("[TripPlanPage] Failed to generate plan:", err);
       setError(language === "ar" ? "حدث خطأ، حاول مرة أخرى" : "Something went wrong, please try again.");
     } finally {
       setLoading(false);

@@ -2,7 +2,12 @@ import { Router } from "express";
 import Groq from "groq-sdk";
 
 const router = Router();
-const groq = new Groq({ apiKey: process.env.GROQ_KEY ?? process.env.GROQ_API_KEY });
+
+const groqApiKey = process.env.GROQ_KEY ?? process.env.GROQ_API_KEY;
+if (!groqApiKey) {
+  console.warn("[tripplan] GROQ_KEY / GROQ_API_KEY not set — trip-plan endpoint will return 503");
+}
+const groq = new Groq({ apiKey: groqApiKey });
 
 router.post("/trip-plan", async (req, res) => {
   const { destination, days, budget, interests, language } = req.body as {
@@ -15,6 +20,11 @@ router.post("/trip-plan", async (req, res) => {
 
   if (!destination || !days) {
     res.status(400).json({ error: "destination and days are required" });
+    return;
+  }
+
+  if (!groqApiKey) {
+    res.status(503).json({ error: "AI service not configured" });
     return;
   }
 
@@ -59,15 +69,24 @@ Format:
     // Extract JSON from the response
     const jsonMatch = raw.match(/\[[\s\S]*\]/);
     if (!jsonMatch) {
-      res.status(500).json({ error: "Failed to parse itinerary" });
+      req.log.warn({ raw }, "AI response did not contain a JSON array");
+      res.status(502).json({ error: "Failed to parse itinerary from AI response" });
       return;
     }
 
-    const itinerary = JSON.parse(jsonMatch[0]);
+    let itinerary: unknown;
+    try {
+      itinerary = JSON.parse(jsonMatch[0]);
+    } catch (parseErr) {
+      req.log.warn({ parseErr, raw: jsonMatch[0] }, "JSON parse failed on AI response");
+      res.status(502).json({ error: "AI returned malformed JSON" });
+      return;
+    }
+
     res.json({ itinerary });
   } catch (err) {
     req.log.error(err, "Trip plan error");
-    res.status(500).json({ error: "Failed to generate trip plan" });
+    res.status(502).json({ error: "Failed to generate trip plan" });
   }
 });
 
