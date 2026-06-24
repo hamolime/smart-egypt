@@ -12,3 +12,6 @@ AI-powered Egypt tourism web app built with React, Vite, and Express.
 - AI Trip Plan Generator
 - Explore 12 Egyptian destinations
 - Dark/Light theme
+
+To try the site, click here 
+https://hamolime-smart-egypt.hf.space/
